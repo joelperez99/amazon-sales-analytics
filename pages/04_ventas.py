@@ -12,7 +12,7 @@ from components.layout import (
     preparar_pagina,
     selector_frecuencia,
 )
-from components.metric_cards import fila_tarjetas
+from components.metric_cards import tarjeta
 from components.tables import tabla_pedidos
 from services.metrics_service import (
     detalle_pedidos,
@@ -37,35 +37,22 @@ df, metricas, comparacion = contexto.df, contexto.metricas, contexto.comparacion
 # Indicadores de venta
 # =============================================================================
 
-fila_tarjetas(
-    metricas,
-    [
-        ("ventas_brutas", "moneda"),
-        ("impuestos_cobrados", "moneda"),
-        ("ventas_con_impuestos", "moneda"),
-        ("pedidos_unicos", "entero"),
-        ("unidades", "entero"),
-    ],
-    comparacion,
-    columnas=5,
-)
-fila_tarjetas(
-    metricas,
-    [
-        ("ticket_promedio", "moneda"),
-        ("precio_promedio_unidad", "moneda"),
-        ("unidades_por_pedido", "decimal"),
-        ("skus_vendidos", "entero"),
-        ("ventas_por_dia", "moneda"),
-    ],
-    comparacion,
-    columnas=5,
-)
+# Cuatro tarjetas: la venta con impuestos se muestra con la etiqueta corta «Ventas».
+_col1, _col2, _col3, _col4 = st.columns(4, gap="small")
+with _col1:
+    tarjeta("ventas_con_impuestos", metricas.get("ventas_con_impuestos"), comparacion,
+            "moneda", etiqueta="Ventas")
+with _col2:
+    tarjeta("pedidos_unicos", metricas.get("pedidos_unicos"), comparacion, "entero")
+with _col3:
+    tarjeta("unidades", metricas.get("unidades"), comparacion, "entero")
+with _col4:
+    tarjeta("ticket_promedio", metricas.get("ticket_promedio"), comparacion, "moneda")
 
 nota_metodologica(
-    "las ventas brutas y las unidades se calculan solo con las filas de tipo «Pedido»; "
-    "los pedidos únicos se cuentan por «Id. del pedido», así que un pedido con varias "
-    "líneas cuenta una sola vez."
+    "«Ventas» incluye los impuestos cobrados al cliente; las unidades se calculan solo "
+    "con las filas de tipo «Pedido» y los pedidos únicos se cuentan por «Id. del pedido», "
+    "así que un pedido con varias líneas cuenta una sola vez."
 )
 
 st.markdown("---")
