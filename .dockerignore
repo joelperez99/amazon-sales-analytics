@@ -1,0 +1,25 @@
+# Archivos que no deben entrar a la imagen
+.env
+.git
+.gitignore
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.coverage
+htmlcov
+.mypy_cache
+.ruff_cache
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/uploads
+logs
+*.log
+.vscode
+.idea
+.DS_Store
+README.md

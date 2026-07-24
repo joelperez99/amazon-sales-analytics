@@ -1,0 +1,40 @@
+# Secretos: nunca se versionan
+.env
+.env.local
+.env.production
+*.pem
+*.key
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Datos de la aplicación
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/uploads/
+data/demo/*.csv
+logs/
+*.log
+
+# Exportaciones generadas
+*.xlsx
+!assets/*.xlsx
+
+# Editores y sistema operativo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
