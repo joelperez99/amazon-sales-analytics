@@ -38,7 +38,9 @@ from utils.formatting import (
 TipoFormato = Literal["moneda", "entero", "porcentaje", "decimal"]
 
 _FORMATEADORES: dict[str, Callable[[Any], str]] = {
-    "moneda": formato_moneda,
+    # En las tarjetas se omite el sufijo « MXN» para que el número quepa en una
+    # sola línea; el símbolo $ ya indica la moneda y la nota al pie lo aclara.
+    "moneda": lambda v: formato_moneda(v, con_divisa=False),
     "entero": formato_entero,
     "porcentaje": formato_porcentaje,
     "decimal": formato_decimal,
@@ -63,6 +65,7 @@ def inyectar_estilos() -> None:
             height: 100%;
             min-height: 118px;      /* altura pareja aunque el contenido varíe */
             min-width: 0;           /* permite que el valor se encoja en vez de desbordar */
+            container-type: inline-size;  /* el valor se dimensiona según el ancho de la tarjeta */
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -86,19 +89,25 @@ def inyectar_estilos() -> None:
         }}
         .tarjeta-kpi .etiqueta {{
             font-family: {FUENTE_UI};
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: .045em;
+            letter-spacing: .04em;
+            line-height: 1.25;
             color: {COLOR_TINTA_TENUE};
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 6px;
+            /* Reserva el alto de dos líneas para que el valor arranque a la misma
+               altura en todas las tarjetas, se parta o no la etiqueta. */
+            min-height: 26px;
         }}
         .tarjeta-kpi .valor {{
             font-family: {FUENTE_UI};
-            /* Tamaño fluido: se ajusta al ancho de la columna y nunca parte el número. */
-            font-size: clamp(18px, 2.1vw, 27px);
+            /* Tamaño fluido relativo al ancho de la tarjeta (cqw): el número
+               crece en tarjetas anchas y se encoge en las angostas, siempre en
+               una sola línea y sin desbordar. */
+            font-size: clamp(17px, 14cqw, 27px);
             font-weight: 700;
             line-height: 1.1;
             letter-spacing: -.015em;
