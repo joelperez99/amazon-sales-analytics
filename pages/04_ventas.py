@@ -13,6 +13,7 @@ from components.layout import (
     selector_frecuencia,
 )
 from components.metric_cards import tarjeta
+from components.secciones import seccion_geografia
 from components.tables import tabla_pedidos
 from services.metrics_service import (
     detalle_pedidos,
@@ -136,6 +137,22 @@ with tab_financiero:
             ),
             width="stretch",
         )
+
+st.markdown("---")
+
+# =============================================================================
+# Distribución geográfica
+# =============================================================================
+
+st.markdown("### ¿Dónde se vendió?")
+st.caption("Distribución de la venta por estado y ciudad en el periodo filtrado.")
+seccion_geografia(
+    df,
+    incluir_tabla_detalle=False,   # la tabla completa vive en la página de Geografía
+    incluir_descargas=False,
+    prefijo="ventas_geo",
+)
+st.caption("Para el detalle completo por estado y ciudad, abre la página **Geografía**.")
 
 st.markdown("---")
 
