@@ -23,6 +23,7 @@ from utils.constants import (
     COLOR_TINTA,
     COLOR_TINTA_SECUNDARIA,
     COLOR_TINTA_TENUE,
+    COLOR_VENTAS,
     DICCIONARIO_METRICAS,
     FUENTE_UI,
 )
@@ -54,44 +55,60 @@ def inyectar_estilos() -> None:
         f"""
         <style>
         .tarjeta-kpi {{
+            position: relative;
             background: {COLOR_SUPERFICIE};
-            border: 1px solid rgba(11,11,11,0.10);
-            border-radius: 12px;
-            padding: 16px 18px 14px 18px;
+            border: 1px solid rgba(11,11,11,0.07);
+            border-radius: 14px;
+            padding: 16px 18px 15px 20px;
             height: 100%;
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            transition: border-color .15s ease, box-shadow .15s ease;
+            gap: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(11,11,11,0.05), 0 3px 10px rgba(11,11,11,0.035);
+            transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+        }}
+        /* Barra de acento a la izquierda: identidad visual sin robar tinta. */
+        .tarjeta-kpi::before {{
+            content: "";
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 3px;
+            background: {COLOR_VENTAS};
+            opacity: .9;
         }}
         .tarjeta-kpi:hover {{
-            border-color: {COLOR_EJE};
-            box-shadow: 0 1px 6px rgba(11,11,11,0.06);
+            transform: translateY(-2px);
+            border-color: rgba(11,11,11,0.12);
+            box-shadow: 0 6px 18px rgba(11,11,11,0.09);
         }}
         .tarjeta-kpi .etiqueta {{
             font-family: {FUENTE_UI};
-            font-size: 12.5px;
-            font-weight: 500;
-            color: {COLOR_TINTA_SECUNDARIA};
-            letter-spacing: .01em;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .045em;
+            color: {COLOR_TINTA_TENUE};
             display: flex;
             align-items: center;
             gap: 6px;
         }}
         .tarjeta-kpi .valor {{
             font-family: {FUENTE_UI};
-            font-size: 26px;
-            font-weight: 600;
-            line-height: 1.15;
+            font-size: 29px;
+            font-weight: 700;
+            line-height: 1.08;
+            letter-spacing: -.015em;
             color: {COLOR_TINTA};
         }}
         .tarjeta-kpi .delta {{
             font-family: {FUENTE_UI};
             font-size: 12.5px;
-            font-weight: 500;
+            font-weight: 600;
             display: flex;
             align-items: center;
             gap: 5px;
+            margin-top: auto;
         }}
         .tarjeta-kpi .nota {{
             font-family: {FUENTE_UI};
@@ -99,7 +116,7 @@ def inyectar_estilos() -> None:
             color: {COLOR_TINTA_TENUE};
         }}
         .tarjeta-kpi .ayuda {{
-            font-size: 11px;
+            font-size: 10px;
             color: {COLOR_TINTA_TENUE};
             border: 1px solid {COLOR_EJE};
             border-radius: 50%;
