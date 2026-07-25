@@ -65,7 +65,7 @@ def seccion_geografia(
     # --- Mapa ----------------------------------------------------------------
     mapa = charts.mapa_mexico(estados, "ventas")
     if mapa is not None:
-        st.plotly_chart(mapa, width="stretch")
+        st.plotly_chart(mapa, width="stretch", key=f"{prefijo}_mapa")
         st.caption(
             "El color codifica el importe vendido: entre más oscuro, mayor venta. "
             "Los estados sin registros aparecen sin color."
@@ -90,6 +90,7 @@ def seccion_geografia(
                     "Top 10 estados por ventas", "Ventas brutas del periodo",
                 ),
                 width="stretch",
+                key=f"{prefijo}_estados_ventas",
             )
         with col_b:
             if grafico_secundario == "ciudades":
@@ -103,7 +104,7 @@ def seccion_geografia(
                     "Top 10 estados por neto", "Depósito después de tarifas",
                     color=COLOR_NETO,
                 )
-            st.plotly_chart(figura_secundaria, width="stretch")
+            st.plotly_chart(figura_secundaria, width="stretch", key=f"{prefijo}_secundario")
 
     with tab_operacion:
         col_a, col_b = st.columns(2)
@@ -114,6 +115,7 @@ def seccion_geografia(
                     "Top 10 estados por pedidos", color=COLOR_PEDIDOS, es_moneda=False,
                 ),
                 width="stretch",
+                key=f"{prefijo}_estados_pedidos",
             )
         with col_b:
             st.plotly_chart(
@@ -122,6 +124,7 @@ def seccion_geografia(
                     "Top 10 estados por unidades", color=COLOR_UNIDADES, es_moneda=False,
                 ),
                 width="stretch",
+                key=f"{prefijo}_estados_unidades",
             )
 
     with tab_ciudades:
@@ -131,6 +134,7 @@ def seccion_geografia(
                 "Top 10 ciudades por ventas", "Ventas brutas del periodo",
             ),
             width="stretch",
+            key=f"{prefijo}_ciudades_ventas",
         )
         st.markdown("#### Detalle por ciudad")
         tabla_simple(
