@@ -150,6 +150,7 @@ seccion_geografia(
     df,
     incluir_tabla_detalle=False,   # la tabla completa vive en la página de Geografía
     incluir_descargas=False,
+    grafico_secundario="ciudades",  # junto a estados por ventas, top ciudades por ventas
     prefijo="ventas_geo",
 )
 st.caption("Para el detalle completo por estado y ciudad, abre la página **Geografía**.")

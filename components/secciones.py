@@ -23,6 +23,7 @@ def seccion_geografia(
     *,
     incluir_tabla_detalle: bool = True,
     incluir_descargas: bool = True,
+    grafico_secundario: str = "neto",
     prefijo: str = "geo",
 ) -> None:
     """Dibuja la distribución geográfica: resumen, mapa y rankings por estado.
@@ -31,6 +32,9 @@ def seccion_geografia(
         df: datos ya filtrados del periodo.
         incluir_tabla_detalle: si se muestra la tabla geográfica completa por estado.
         incluir_descargas: si se muestran los botones de descarga a Excel.
+        grafico_secundario: qué mostrar a la derecha del primer tab. ``"neto"``
+            pone «Top 10 estados por neto»; ``"ciudades"`` pone «Top 10 ciudades
+            por ventas».
         prefijo: prefijo para las claves de los widgets, para poder usar la
             sección más de una vez en distintas páginas sin colisiones.
     """
@@ -88,14 +92,18 @@ def seccion_geografia(
                 width="stretch",
             )
         with col_b:
-            st.plotly_chart(
-                charts.top_barras(
+            if grafico_secundario == "ciudades":
+                figura_secundaria = charts.top_barras(
+                    ciudades, "ciudad", "ventas",
+                    "Top 10 ciudades por ventas", "Ventas brutas del periodo",
+                )
+            else:
+                figura_secundaria = charts.top_barras(
                     estados, "estado", "neto",
                     "Top 10 estados por neto", "Depósito después de tarifas",
                     color=COLOR_NETO,
-                ),
-                width="stretch",
-            )
+                )
+            st.plotly_chart(figura_secundaria, width="stretch")
 
     with tab_operacion:
         col_a, col_b = st.columns(2)
