@@ -61,6 +61,8 @@ def inyectar_estilos() -> None:
             border-radius: 14px;
             padding: 16px 18px 15px 20px;
             height: 100%;
+            min-height: 118px;      /* altura pareja aunque el contenido varíe */
+            min-width: 0;           /* permite que el valor se encoja en vez de desbordar */
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -95,11 +97,13 @@ def inyectar_estilos() -> None:
         }}
         .tarjeta-kpi .valor {{
             font-family: {FUENTE_UI};
-            font-size: 29px;
+            /* Tamaño fluido: se ajusta al ancho de la columna y nunca parte el número. */
+            font-size: clamp(18px, 2.1vw, 27px);
             font-weight: 700;
-            line-height: 1.08;
+            line-height: 1.1;
             letter-spacing: -.015em;
             color: {COLOR_TINTA};
+            white-space: nowrap;
         }}
         .tarjeta-kpi .delta {{
             font-family: {FUENTE_UI};
