@@ -48,11 +48,13 @@ _FORMATEADORES: dict[str, Callable[[Any], str]] = {
 
 
 def inyectar_estilos() -> None:
-    """Inyecta el CSS de las tarjetas.  Se llama una vez por página."""
-    if st.session_state.get("_estilos_tarjetas"):
-        return
-    st.session_state["_estilos_tarjetas"] = True
+    """Inyecta el CSS de las tarjetas en cada render.
 
+    No se cachea por sesión a propósito: Streamlit reconstruye el árbol de
+    elementos en cada ejecución, así que un candado por sesión haría desaparecer
+    el ``<style>`` tras la primera interacción y las tarjetas perderían formato.
+    Repetir el mismo bloque de estilos es inofensivo en CSS.
+    """
     st.markdown(
         f"""
         <style>
