@@ -533,7 +533,31 @@ def mapa_mexico(tabla_estados: pd.DataFrame, columna_valor: str = "ventas") -> g
     if geojson is None or tabla_estados.empty:
         return None
 
-    figura = go.Figure(go.Choropleth(
+    figura = go.Figure()
+
+    # --- Capa base: TODOS los estados del país -------------------------------
+    # Se dibujan vacíos (relleno igual a la superficie, que se funde con el
+    # fondo) pero con el borde visible, para que los estados sin venta también
+    # aparezcan delimitados en el mapa.
+    nombres_estados = [
+        f.get("properties", {}).get("name")
+        for f in geojson.get("features", [])
+        if f.get("properties", {}).get("name")
+    ]
+    if nombres_estados:
+        figura.add_trace(go.Choropleth(
+            geojson=geojson,
+            locations=nombres_estados,
+            z=[0] * len(nombres_estados),
+            featureidkey="properties.name",
+            colorscale=[[0, COLOR_SUPERFICIE], [1, COLOR_SUPERFICIE]],
+            showscale=False,
+            marker=dict(line=dict(color=COLOR_EJE, width=0.6)),
+            hovertemplate="<b>%{location}</b><br>Sin ventas en el periodo<extra></extra>",
+        ))
+
+    # --- Capa de datos: estados con venta, coloreados ------------------------
+    figura.add_trace(go.Choropleth(
         geojson=geojson,
         locations=tabla_estados["estado"],
         z=tabla_estados[columna_valor],
@@ -547,8 +571,9 @@ def mapa_mexico(tabla_estados: pd.DataFrame, columna_valor: str = "ventas") -> g
         ),
         hovertemplate="<b>%{location}</b><br>$%{z:,.2f} MXN<extra></extra>",
     ))
+
     figura.update_geos(
-        fitbounds="locations", visible=False, bgcolor=COLOR_SUPERFICIE,
+        fitbounds="geojson", visible=False, bgcolor=COLOR_SUPERFICIE,
     )
     figura.update_layout(
         height=520,
