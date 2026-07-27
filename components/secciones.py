@@ -14,8 +14,11 @@ from components.layout import nota_metodologica
 from components.tables import tabla_simple
 from services.export_service import exportar_excel_simple, nombre_archivo_exportacion
 from services.metrics_service import tabla_por_ciudad, tabla_por_estado
-from utils.constants import COLOR_NETO, COLOR_PEDIDOS, COLOR_UNIDADES
+from utils.constants import COLOR_NETO, COLOR_PEDIDOS, COLOR_UNIDADES, ESTADOS_MEXICO
 from utils.formatting import formato_entero, formato_moneda, formato_porcentaje
+
+#: Nombres oficiales de las 32 entidades federativas (31 estados + CDMX).
+_ENTIDADES_OFICIALES = set(ESTADOS_MEXICO.values())
 
 
 def seccion_geografia(
@@ -49,15 +52,35 @@ def seccion_geografia(
         return
 
     # --- Resumen -------------------------------------------------------------
-    lider = estados.iloc[0]
+    # Solo se cuentan las entidades federativas reales con venta > 0. Se excluye
+    # «Sin estado» (cargos, tarifas y transferencias sin ubicación) y cualquier
+    # valor mal capturado en el archivo que no corresponda a un estado de México.
+    estados_reales = estados[
+        estados["estado"].isin(_ENTIDADES_OFICIALES) & (estados["ventas"] > 0)
+    ]
+    ciudades_con_venta = ciudades[
+        (ciudades["ventas"] > 0) & (ciudades["ciudad"].astype("string") != "Sin ciudad")
+    ]
+    num_estados = len(estados_reales)
+    num_ciudades = len(ciudades_con_venta)
+
+    lider = estados_reales.iloc[0] if not estados_reales.empty else None
+
     col_a, col_b, col_c, col_d = st.columns(4)
-    col_a.metric("Estados con venta", formato_entero(len(estados)))
-    col_b.metric("Ciudades con venta", formato_entero(len(ciudades)))
-    col_c.metric("Estado líder", str(lider["estado"]))
+    col_a.metric(
+        "Estados con venta",
+        formato_entero(num_estados),
+        help="Entidades federativas de México (máximo 32) con al menos una venta en el periodo.",
+    )
+    col_b.metric("Ciudades con venta", formato_entero(num_ciudades))
+    col_c.metric("Estado líder", str(lider["estado"]) if lider is not None else "N/D")
     col_d.metric(
         "Participación del líder",
-        formato_porcentaje(lider["participacion"]),
-        help=f"{formato_moneda(lider['ventas'])} de venta bruta.",
+        formato_porcentaje(lider["participacion"]) if lider is not None else "N/D",
+        help=(
+            f"{formato_moneda(lider['ventas'])} de venta bruta."
+            if lider is not None else "Sin ventas con estado identificado."
+        ),
     )
 
     st.markdown("")
