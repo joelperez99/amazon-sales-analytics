@@ -459,6 +459,10 @@ ALIAS_PRODUCTOS: dict[str, str] = {
     "SNUTRITION-ADU-FRESA": "SNUTRITION-ADU-FRESA",
     "SNUTRITION-ADU-VAINILLA": "SNUTRITION-ADU-VAINILLA",
     "SNUTRITION-ADU-CHOCOLATE": "SNUTRITION-ADU-CHOCOLATE",
+    # --- LecheLak: sencillo vs. paquete de 12 (misma descripción salvo el sufijo
+    #     «- 12 pack», que el recorte de la gráfica ocultaba) ---
+    "LECHELAK-1DM": "LecheLak Leche Entera de Cabra en Polvo 340gr",
+    "AS-H0HB-9T44": "12 Pack LecheLak Leche Entera de Cabra en Polvo 340gr",
 }
 
 #: Formato de SKU de S-Nutrition ya canónico (para reconocer variantes futuras
