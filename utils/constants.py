@@ -14,12 +14,20 @@ import unicodedata
 # =============================================================================
 
 
+# Caracteres de ancho cero e invisibles que a veces contamina el reporte de
+# Amazon (espacio de ancho cero, uniones, marca de orden de bytes). No son
+# espacios "normales", así que ``str.split`` no los elimina y crearían valores
+# casi idénticos —"Nuevo León" vs "Nuevo​León"— que no se agrupan.
+_CARACTERES_INVISIBLES = ("​", "‌", "‍", "⁠", "﻿", "­")
+
+
 def normalizar_texto(valor: object) -> str:
     """Normaliza un texto para poder compararlo.
 
-    Pasa a minúsculas, elimina acentos, signos de puntuación irrelevantes y
-    espacios duplicados.  ``"Id. del Pedido "`` y ``"id del pedido"`` producen el
-    mismo resultado.
+    Pasa a minúsculas, elimina acentos, caracteres invisibles, signos de
+    puntuación irrelevantes y espacios duplicados (incluidos los espacios Unicode
+    como el no separable).  ``"Id. del Pedido "`` y ``"id del pedido"`` producen
+    el mismo resultado, igual que ``"NUEVO  LEÓN"`` y ``"nuevo leon"``.
     """
     if valor is None:
         return ""
@@ -28,9 +36,15 @@ def normalizar_texto(valor: object) -> str:
     texto = unicodedata.normalize("NFKD", texto)
     texto = "".join(c for c in texto if not unicodedata.combining(c))
     texto = texto.lower()
-    # Sustituye separadores y puntuación por espacios.
-    for caracter in ".:;_-/\\()[]{}#*\"'\t\n\r":
-        texto = texto.replace(caracter, " ")
+    # Sustituye por un espacio: la puntuación, cualquier espacio Unicode (incluido
+    # el no separable) y los caracteres invisibles de ancho cero. Tratarlos como
+    # espacio —en vez de borrarlos— evita tanto los duplicados por doble espacio
+    # como que dos palabras queden pegadas cuando el separador es invisible.
+    texto = "".join(
+        " " if (c in ".:;_-/\\()[]{}#*\"'" or c.isspace() or c in _CARACTERES_INVISIBLES)
+        else c
+        for c in texto
+    )
     return " ".join(texto.split())
 
 
@@ -466,7 +480,10 @@ ESTADOS_MEXICO: dict[str, str] = {
     "queretaro": "Querétaro",
     "queretaro de arteaga": "Querétaro",
     "quintana roo": "Quintana Roo",
+    "qroo": "Quintana Roo",
+    "q roo": "Quintana Roo",
     "san luis potosi": "San Luis Potosí",
+    "slp": "San Luis Potosí",
     "sinaloa": "Sinaloa",
     "sonora": "Sonora",
     "tabasco": "Tabasco",

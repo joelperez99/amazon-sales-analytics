@@ -206,12 +206,12 @@ def normalizar_estado(serie: pd.Series) -> pd.Series:
     """Convierte el estado a su nombre oficial (``NUEVO LEON`` -> ``Nuevo León``)."""
     normalizado = serie.astype("string").fillna("").map(normalizar_texto)
     oficial = normalizado.map(ESTADOS_MEXICO)
-    # Lo que no está en el catálogo conserva su texto en formato título.
+    # Lo que no está en el catálogo conserva su texto en formato título, pero se
+    # reconstruye a partir del texto ya normalizado para no arrastrar espacios
+    # dobles ni caracteres invisibles que crearían duplicados.
     sin_catalogo = oficial.isna() & normalizado.ne("")
     if sin_catalogo.any():
-        oficial.loc[sin_catalogo] = (
-            serie[sin_catalogo].astype("string").str.strip().str.title()
-        )
+        oficial.loc[sin_catalogo] = normalizado[sin_catalogo].str.title()
     return oficial.fillna("Sin estado").astype("string")
 
 
