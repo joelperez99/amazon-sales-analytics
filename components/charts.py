@@ -402,8 +402,14 @@ def top_barras(
     color: str = COLOR_VENTAS,
     es_moneda: bool = True,
     top: int = 10,
+    etiquetas_izquierda: bool = False,
 ) -> go.Figure:
-    """Top N en barras horizontales, ordenadas de mayor a menor."""
+    """Top N en barras horizontales, ordenadas de mayor a menor.
+
+    Con ``etiquetas_izquierda=True`` los nombres se alinean a la izquierda (útil
+    para etiquetas largas como los nombres de producto); si no, se muestran
+    pegados a las barras como en el resto del tablero.
+    """
     if tabla.empty or columna_valor not in tabla.columns:
         return figura_vacia()
 
@@ -415,7 +421,8 @@ def top_barras(
     if datos.empty:
         return figura_vacia()
 
-    etiquetas = datos[columna_etiqueta].astype(str).str.slice(0, 42)
+    limite_texto = 46 if etiquetas_izquierda else 42
+    etiquetas = datos[columna_etiqueta].astype(str).str.slice(0, limite_texto)
     formato = "$%{x:,.2f} MXN" if es_moneda else "%{x:,.0f}"
 
     figura = _figura_base(alto=max(300, 40 * len(datos)))
@@ -437,7 +444,27 @@ def top_barras(
         showgrid=True, gridcolor=COLOR_REJILLA,
     )
     figura.update_yaxes(showgrid=False)
-    return _titulo(figura, titulo, subtitulo)
+
+    figura = _titulo(figura, titulo, subtitulo)
+
+    if etiquetas_izquierda:
+        # Plotly alinea a la derecha las etiquetas del eje Y; para justificarlas a
+        # la izquierda se ocultan y se redibujan como anotaciones ancladas a la
+        # izquierda dentro de un margen reservado.  Se aplica después de _titulo
+        # porque este reajusta los márgenes.
+        ancho_px = 330
+        figura.update_layout(margin=dict(l=ancho_px))
+        figura.update_yaxes(showticklabels=False)
+        for etq in etiquetas:
+            figura.add_annotation(
+                xref="paper", yref="y", x=0, y=etq,
+                text=etq, showarrow=False,
+                xanchor="left", align="left",
+                xshift=-(ancho_px - 8),
+                font=dict(size=11, color=COLOR_TINTA_SECUNDARIA),
+            )
+
+    return figura
 
 
 def pareto(datos: pd.DataFrame, columna_etiqueta: str, top: int = 20) -> go.Figure:

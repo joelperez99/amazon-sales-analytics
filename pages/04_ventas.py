@@ -182,6 +182,7 @@ st.plotly_chart(
         color=COLOR_UNIDADES,
         es_moneda=False,
         top=len(productos_con_venta),
+        etiquetas_izquierda=True,
     ),
     width="stretch",
     key="ventas_top_productos_unidades",

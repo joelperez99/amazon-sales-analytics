@@ -28,10 +28,11 @@ from services.data_cleaner import (
     ReporteLimpieza,
     concatenar_reportes,
     limpiar_dataframe,
+    unificar_nombre_producto,
 )
 from services.storage_service import get_storage
 from utils.config import get_settings
-from utils.constants import COL_FECHA
+from utils.constants import COL_DESCRIPCION, COL_FECHA, COL_SKU
 from utils.logger import get_logger, registrar_auditoria, registrar_error
 from utils.validations import (
     ResultadoValidacion,
@@ -341,6 +342,14 @@ def obtener_datos() -> pd.DataFrame:
     df = st.session_state.get(CLAVE_DATOS)
     if df is None:
         return pd.DataFrame()
+
+    # Unifica el nombre de producto por SKU aquí, en el único punto por el que
+    # pasan los datos al tablero. Así aplica tanto a las cargas nuevas como al
+    # histórico ya guardado en la base (que se limpió antes de existir esta
+    # regla), sin tener que volver a subir el archivo. Es idempotente.
+    if COL_SKU in df.columns and COL_DESCRIPCION in df.columns:
+        df = df.copy()
+        df[COL_DESCRIPCION] = unificar_nombre_producto(df[COL_SKU], df[COL_DESCRIPCION])
 
     if st.session_state.get(CLAVE_EXCLUIR_DUPLICADOS, False):
         from services.data_cleaner import aplicar_exclusion_duplicados
