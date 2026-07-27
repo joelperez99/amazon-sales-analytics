@@ -13,8 +13,9 @@ from components.layout import (
     selector_frecuencia,
 )
 from components.metric_cards import tarjeta
-from components.secciones import seccion_geografia
+from components.secciones import barra_filtros_ventas, seccion_geografia
 from components.tables import tabla_pedidos
+from services.auth_service import tiene_funcion
 from services.metrics_service import (
     detalle_pedidos,
     resumen_pedidos,
@@ -24,15 +25,31 @@ from utils.constants import COLOR_NETO, COLOR_TARIFAS, COLOR_UNIDADES, COLOR_VEN
 
 barra_lateral_usuario()
 
+# La página de Ventas usa su propia barra de filtros (Año, Mes, Estado, Producto)
+# en la parte superior, así que se desactivan los filtros de la barra lateral.
 contexto = preparar_pagina(
     "Ventas",
     "Evolución de la venta, los pedidos y las unidades en el periodo.",
     "📈",
+    con_filtros=False,
 )
 if contexto is None:
     st.stop()
 
-df, metricas, comparacion = contexto.df, contexto.metricas, contexto.comparacion
+# --- Barra de filtros del reporte ------------------------------------------
+df, metricas, comparacion = barra_filtros_ventas(
+    contexto.df_completo,
+    con_comparacion=tiene_funcion(contexto.sesion, "comparacion_periodos"),
+)
+
+if df.empty:
+    st.warning(
+        "No hay transacciones para la combinación de filtros seleccionada. "
+        "Ajusta el año, el mes, el estado o el producto."
+    )
+    st.stop()
+
+st.markdown("---")
 
 # =============================================================================
 # Indicadores de venta
