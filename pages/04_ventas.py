@@ -12,8 +12,9 @@ from components.layout import (
     preparar_pagina,
     selector_frecuencia,
 )
+from components.filtros_ventas import barra_filtros_ventas
 from components.metric_cards import tarjeta
-from components.secciones import barra_filtros_ventas, seccion_geografia
+from components.secciones import seccion_geografia
 from components.tables import tabla_pedidos
 from services.auth_service import tiene_funcion
 from services.metrics_service import (
