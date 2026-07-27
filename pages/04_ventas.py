@@ -21,6 +21,7 @@ from services.metrics_service import (
     detalle_pedidos,
     resumen_pedidos,
     serie_temporal,
+    tabla_por_producto,
 )
 from utils.constants import COLOR_NETO, COLOR_TARIFAS, COLOR_UNIDADES, COLOR_VENTAS
 
@@ -155,6 +156,31 @@ with tab_financiero:
             ),
             width="stretch",
         )
+
+st.markdown("---")
+
+# =============================================================================
+# Top de productos por unidades vendidas
+# =============================================================================
+
+st.markdown("### Productos más vendidos")
+st.caption(
+    "Unidades vendidas por producto (agrupado por su descripción) en el periodo filtrado. "
+    "Las unidades se cuentan solo con las filas de tipo «Pedido»."
+)
+st.plotly_chart(
+    charts.top_barras(
+        tabla_por_producto(df),
+        "descripcion",
+        "unidades",
+        "Top 10 productos por unidades vendidas",
+        "Agrupado por descripción",
+        color=COLOR_UNIDADES,
+        es_moneda=False,
+    ),
+    width="stretch",
+    key="ventas_top_productos_unidades",
+)
 
 st.markdown("---")
 
