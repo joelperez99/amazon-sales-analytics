@@ -36,6 +36,7 @@ from utils.constants import (
     FUENTE_UI,
     PALETA_CATEGORICA,
     RAMPA_SECUENCIAL,
+    normalizar_texto,
 )
 
 #: Máximo de series categóricas antes de agrupar en «Otros».
@@ -533,44 +534,80 @@ def mapa_mexico(tabla_estados: pd.DataFrame, columna_valor: str = "ventas") -> g
     if geojson is None or tabla_estados.empty:
         return None
 
+    nombres_estados = [
+        f.get("properties", {}).get("name")
+        for f in geojson.get("features", [])
+        if f.get("properties", {}).get("name")
+    ]
+    if not nombres_estados:
+        return None
+
+    # El GeoJSON usa nombres cortos («Coahuila», «Michoacán», «Veracruz»)
+    # mientras que el catálogo interno usa los nombres oficiales largos. Se
+    # empatan por nombre normalizado, aceptando que el nombre del GeoJSON sea un
+    # prefijo del oficial (se prueba el más largo primero para no confundir
+    # «Baja California» con «Baja California Sur»).
+    geo_por_norma = {normalizar_texto(n): n for n in nombres_estados}
+    claves_geo = sorted(geo_por_norma.keys(), key=len, reverse=True)
+
+    def a_nombre_geojson(estado: object) -> str | None:
+        norma = normalizar_texto(estado)
+        if not norma:
+            return None
+        if norma in geo_por_norma:
+            return geo_por_norma[norma]
+        for clave in claves_geo:  # el nombre del GeoJSON es prefijo del oficial
+            if norma == clave or norma.startswith(clave + " "):
+                return geo_por_norma[clave]
+        for clave in claves_geo:  # o al revés: el oficial es prefijo del GeoJSON
+            if clave.startswith(norma + " "):
+                return geo_por_norma[clave]
+        return None
+
+    datos = tabla_estados.copy()
+    datos["_geo"] = datos["estado"].map(a_nombre_geojson)
+    # Si varias filas caen en el mismo estado del GeoJSON, se suman.
+    datos = datos.dropna(subset=["_geo"])
+    if not datos.empty:
+        datos = (
+            datos.groupby("_geo", as_index=False)[columna_valor].sum()
+            if datos["_geo"].duplicated().any()
+            else datos[["_geo", columna_valor]]
+        )
+
     figura = go.Figure()
 
     # --- Capa base: TODOS los estados del país -------------------------------
     # Se dibujan vacíos (relleno igual a la superficie, que se funde con el
     # fondo) pero con el borde visible, para que los estados sin venta también
     # aparezcan delimitados en el mapa.
-    nombres_estados = [
-        f.get("properties", {}).get("name")
-        for f in geojson.get("features", [])
-        if f.get("properties", {}).get("name")
-    ]
-    if nombres_estados:
-        figura.add_trace(go.Choropleth(
-            geojson=geojson,
-            locations=nombres_estados,
-            z=[0] * len(nombres_estados),
-            featureidkey="properties.name",
-            colorscale=[[0, COLOR_SUPERFICIE], [1, COLOR_SUPERFICIE]],
-            showscale=False,
-            marker=dict(line=dict(color=COLOR_EJE, width=0.6)),
-            hovertemplate="<b>%{location}</b><br>Sin ventas en el periodo<extra></extra>",
-        ))
-
-    # --- Capa de datos: estados con venta, coloreados ------------------------
     figura.add_trace(go.Choropleth(
         geojson=geojson,
-        locations=tabla_estados["estado"],
-        z=tabla_estados[columna_valor],
+        locations=nombres_estados,
+        z=[0] * len(nombres_estados),
         featureidkey="properties.name",
-        colorscale=[[i / (len(RAMPA_SECUENCIAL) - 1), c] for i, c in enumerate(RAMPA_SECUENCIAL)],
-        marker=dict(line=dict(color=COLOR_SUPERFICIE, width=1)),
-        colorbar=dict(
-            title=dict(text="Ventas", font=dict(size=12, color=COLOR_TINTA_TENUE)),
-            tickprefix="$", tickformat=",.0f", thickness=14, len=0.75,
-            tickfont=dict(size=11, color=COLOR_TINTA_TENUE),
-        ),
-        hovertemplate="<b>%{location}</b><br>$%{z:,.2f} MXN<extra></extra>",
+        colorscale=[[0, COLOR_SUPERFICIE], [1, COLOR_SUPERFICIE]],
+        showscale=False,
+        marker=dict(line=dict(color=COLOR_EJE, width=0.6)),
+        hovertemplate="<b>%{location}</b><br>Sin ventas en el periodo<extra></extra>",
     ))
+
+    # --- Capa de datos: estados con venta, coloreados ------------------------
+    if not datos.empty:
+        figura.add_trace(go.Choropleth(
+            geojson=geojson,
+            locations=datos["_geo"],
+            z=datos[columna_valor],
+            featureidkey="properties.name",
+            colorscale=[[i / (len(RAMPA_SECUENCIAL) - 1), c] for i, c in enumerate(RAMPA_SECUENCIAL)],
+            marker=dict(line=dict(color=COLOR_SUPERFICIE, width=1)),
+            colorbar=dict(
+                title=dict(text="Ventas", font=dict(size=12, color=COLOR_TINTA_TENUE)),
+                tickprefix="$", tickformat=",.0f", thickness=14, len=0.75,
+                tickfont=dict(size=11, color=COLOR_TINTA_TENUE),
+            ),
+            hovertemplate="<b>%{location}</b><br>$%{z:,.2f} MXN<extra></extra>",
+        ))
 
     figura.update_geos(
         fitbounds="geojson", visible=False, bgcolor=COLOR_SUPERFICIE,
