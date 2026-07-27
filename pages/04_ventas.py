@@ -160,23 +160,28 @@ with tab_financiero:
 st.markdown("---")
 
 # =============================================================================
-# Top de productos por unidades vendidas
+# Productos por unidades vendidas
 # =============================================================================
 
 st.markdown("### Productos más vendidos")
 st.caption(
     "Unidades vendidas por producto (agrupado por su descripción) en el periodo filtrado. "
+    "Se muestran todos los productos con al menos una unidad vendida, de mayor a menor. "
     "Las unidades se cuentan solo con las filas de tipo «Pedido»."
 )
+productos_con_venta = tabla_por_producto(df)
+if "unidades" in productos_con_venta.columns:
+    productos_con_venta = productos_con_venta[productos_con_venta["unidades"] > 0]
 st.plotly_chart(
     charts.top_barras(
-        tabla_por_producto(df),
+        productos_con_venta,
         "descripcion",
         "unidades",
-        "Top 10 productos por unidades vendidas",
-        "Agrupado por descripción",
+        "Productos por unidades vendidas",
+        "Agrupado por descripción · de mayor a menor",
         color=COLOR_UNIDADES,
         es_moneda=False,
+        top=len(productos_con_venta),
     ),
     width="stretch",
     key="ventas_top_productos_unidades",
