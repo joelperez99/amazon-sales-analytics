@@ -441,6 +441,31 @@ TIPOS_CARGO_OPERATIVO: list[str] = [
 ]
 
 # =============================================================================
+# Unificación de nombres de producto
+# =============================================================================
+# Algunas variantes del mismo producto llegan con descripciones idénticas entre
+# sí —los sabores de S-Nutrition comparten exactamente el mismo texto—, así que
+# agrupar por «descripción» los fusionaría y perdería el detalle por variante. El
+# SKU sí las distingue: se reasigna un nombre canónico por SKU. La clave es el
+# SKU en MAYÚSCULAS; el valor es el nombre que se mostrará en gráficas y tablas.
+#
+# Para agregar o corregir un producto, basta con añadir una línea aquí.
+ALIAS_PRODUCTOS: dict[str, str] = {
+    # --- S-Nutrition: infantil (fórmula 200gr «para niños de 1 a 10 años») ---
+    "S-NUTRITION-FRESA-200": "SNUTRITION-INF-FRESA",
+    "S-NUTRITION-VAINILLA-200": "SNUTRITION-INF-VAINILLA",
+    "S-NUTRITION-CHOCOLATE-200": "SNUTRITION-INF-CHOCOLATE",
+    # --- S-Nutrition: adulto ---
+    "SNUTRITION-ADU-FRESA": "SNUTRITION-ADU-FRESA",
+    "SNUTRITION-ADU-VAINILLA": "SNUTRITION-ADU-VAINILLA",
+    "SNUTRITION-ADU-CHOCOLATE": "SNUTRITION-ADU-CHOCOLATE",
+}
+
+#: Formato de SKU de S-Nutrition ya canónico (para reconocer variantes futuras
+#: —p. ej. SNUTRITION-INF-CHOCOLATE— aunque no estén en ``ALIAS_PRODUCTOS``).
+PATRON_SKU_SNUTRITION = r"SNUTRITION-(ADU|INF)-[A-Z]+"
+
+# =============================================================================
 # Catálogo de estados de México
 # =============================================================================
 

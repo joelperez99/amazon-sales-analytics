@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 
 from utils.constants import (
+    ALIAS_PRODUCTOS,
     ALIAS_TIPOS,
     COL_CANTIDAD,
     COL_CIUDAD,
@@ -39,6 +40,7 @@ from utils.constants import (
     COLUMNAS_MONETARIAS,
     COLUMNAS_TEXTO,
     ESTADOS_MEXICO,
+    PATRON_SKU_SNUTRITION,
     TIPO_OTROS,
     normalizar_texto,
 )
@@ -230,6 +232,23 @@ def normalizar_texto_simple(serie: pd.Series, relleno: str = "") -> pd.Series:
     return limpio.fillna("").astype("string")
 
 
+def unificar_nombre_producto(sku: pd.Series, descripcion: pd.Series) -> pd.Series:
+    """Reasigna un nombre canónico según el SKU cuando aplica.
+
+    Resuelve el caso de variantes con descripción idéntica (los sabores de
+    S-Nutrition comparten el mismo texto): el SKU sí las distingue, así que se usa
+    como llave para darles un nombre único y legible.  Las filas cuyo SKU no está
+    mapeado conservan su descripción original.
+    """
+    clave = sku.astype("string").fillna("").str.strip().str.upper()
+    canonico = clave.map(ALIAS_PRODUCTOS).astype("string")
+    # SKUs que ya vienen en formato canónico (p. ej. una variante nueva de
+    # S-Nutrition que aún no esté en ALIAS_PRODUCTOS) se usan tal cual.
+    ya_canonico = clave.str.fullmatch(PATRON_SKU_SNUTRITION, na=False)
+    canonico = canonico.where(~(canonico.isna() & ya_canonico), clave)
+    return canonico.where(canonico.notna(), descripcion).astype("string")
+
+
 def normalizar_codigo_postal(serie: pd.Series) -> pd.Series:
     """Conserva el código postal como texto de 5 dígitos con ceros a la izquierda."""
     limpio = serie.astype("string").str.strip()
@@ -325,6 +344,12 @@ def limpiar_dataframe(
     limpio[COL_SKU] = normalizar_texto_simple(limpio[COL_SKU], relleno="Sin SKU")
     limpio[COL_PEDIDO] = normalizar_texto_simple(limpio[COL_PEDIDO])
     limpio[COL_DESCRIPCION] = normalizar_texto_simple(limpio[COL_DESCRIPCION], relleno="Sin descripción")
+    # Unifica el nombre de las variantes cuyo SKU las distingue mejor que su
+    # descripción (S-Nutrition y demás alias declarados en ALIAS_PRODUCTOS).
+    if COL_SKU in limpio.columns:
+        limpio[COL_DESCRIPCION] = unificar_nombre_producto(
+            limpio[COL_SKU], limpio[COL_DESCRIPCION]
+        )
     limpio[COL_ESTADO_TRANSACCION] = normalizar_texto_simple(
         limpio[COL_ESTADO_TRANSACCION], relleno="Sin estado"
     )
