@@ -32,6 +32,7 @@ from database.models import (
     Transaction,
     UploadedFile,
     User,
+    UserSession,
 )
 from utils.constants import PLANES
 from utils.logger import get_logger
@@ -274,6 +275,44 @@ class UserRepository:
     def total_usuarios() -> int:
         with obtener_sesion() as sesion:
             return int(sesion.scalar(select(func.count(User.id))) or 0)
+
+
+class SessionRepository:
+    """Sesiones persistentes ligadas a una cookie del navegador."""
+
+    @staticmethod
+    def crear(token_hash: str, user_id: int, expira: datetime) -> None:
+        with obtener_sesion() as sesion:
+            sesion.add(UserSession(token_hash=token_hash, user_id=user_id, expira=expira))
+
+    @staticmethod
+    def usuario_por_token(token_hash: str) -> dict[str, Any] | None:
+        """Devuelve el usuario dueño del token si la sesión sigue vigente."""
+        with obtener_sesion() as sesion:
+            fila = sesion.scalar(
+                select(UserSession).where(and_(
+                    UserSession.token_hash == token_hash,
+                    UserSession.expira > datetime.now(),
+                ))
+            )
+            if fila is None:
+                return None
+            return UserRepository._a_dict(sesion.get(User, fila.user_id))
+
+    @staticmethod
+    def eliminar(token_hash: str) -> None:
+        with obtener_sesion() as sesion:
+            sesion.execute(
+                delete(UserSession).where(UserSession.token_hash == token_hash)
+            )
+
+    @staticmethod
+    def limpiar_expiradas() -> None:
+        """Borra las sesiones que ya vencieron (mantenimiento de la tabla)."""
+        with obtener_sesion() as sesion:
+            sesion.execute(
+                delete(UserSession).where(UserSession.expira <= datetime.now())
+            )
 
 
 # =============================================================================

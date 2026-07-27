@@ -102,6 +102,25 @@ class User(Base):
     preferencias: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=dict)
 
 
+class UserSession(Base):
+    """Sesión persistente ligada a una cookie del navegador.
+
+    Solo se guarda el **hash** del token (SHA-256), nunca el token en claro: así,
+    aunque alguien lea la base, no puede reconstruir la cookie de un usuario.  La
+    cookie mantiene la sesión iniciada aunque se reinicie el servidor.
+    """
+
+    __tablename__ = "user_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    expira: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    creada_en: Mapped[datetime] = mapped_column(DateTime, default=_ahora, nullable=False)
+
+
 class OrganizationMember(Base):
     """Relación usuario–organización con su rol (planes multiusuario)."""
 

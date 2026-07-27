@@ -34,8 +34,10 @@ import streamlit as st
 from database.repositories import (
     FileRepository,
     OrganizationRepository,
+    SessionRepository,
     UserRepository,
 )
+from services import session_cookie as cookie
 from utils.config import get_settings
 from utils.constants import PERMISOS_ROL, PLANES
 from utils.logger import get_logger, registrar_auditoria, registrar_error
@@ -136,6 +138,8 @@ class Sesion:
 
 _CLAVE_SESION = "_sesion_usuario"
 _CLAVE_EXPIRA = "_sesion_expira"
+#: Token en claro de la sesión persistente (para poder revocarlo al cerrar).
+_CLAVE_TOKEN = "_sesion_token"
 
 
 def _guardar_sesion(sesion: Sesion) -> None:
@@ -144,6 +148,63 @@ def _guardar_sesion(sesion: Sesion) -> None:
     st.session_state[_CLAVE_EXPIRA] = datetime.now() + timedelta(
         minutes=settings.session_timeout_minutes
     )
+
+
+def _sesion_desde_usuario(usuario: dict[str, Any]) -> Sesion:
+    """Construye la ``Sesion`` a partir del usuario y su organización."""
+    organizacion = OrganizationRepository.obtener(usuario["organization_id"]) or {}
+    return Sesion(
+        user_id=usuario["id"],
+        email=usuario["email"],
+        nombre=usuario["nombre"],
+        rol=usuario["rol"],
+        organization_id=usuario["organization_id"],
+        plan=organizacion.get("plan", "gratuito"),
+        organizacion=organizacion.get("nombre", ""),
+        es_demo=usuario["es_demo"],
+    )
+
+
+def _hash_token(token: str) -> str:
+    """Hash del token de sesión: solo el hash se guarda en la base."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _crear_cookie_persistente(user_id: int) -> None:
+    """Emite un token de sesión, lo guarda en la base y lo escribe en la cookie."""
+    if not cookie.disponible():
+        return
+    settings = get_settings()
+    token = secrets.token_urlsafe(32)
+    expira = datetime.now() + timedelta(days=settings.session_cookie_days)
+    try:
+        SessionRepository.crear(_hash_token(token), user_id, expira)
+    except Exception as error:  # noqa: BLE001
+        registrar_error(logger, error, "creación de la sesión persistente")
+        return
+    st.session_state[_CLAVE_TOKEN] = token
+    cookie.escribir_token(token, expira, seguro=settings.es_produccion)
+
+
+def _restaurar_desde_cookie() -> Sesion | None:
+    """Reabre la sesión a partir de la cookie tras un reinicio o una recarga."""
+    if not cookie.disponible():
+        return None
+    token = cookie.leer_token()
+    if not token:
+        return None
+    try:
+        usuario = SessionRepository.usuario_por_token(_hash_token(token))
+    except Exception as error:  # noqa: BLE001
+        registrar_error(logger, error, "restauración de sesión desde la cookie")
+        return None
+    if usuario is None or not usuario["activo"]:
+        cookie.borrar_token()
+        return None
+    sesion = _sesion_desde_usuario(usuario)
+    _guardar_sesion(sesion)
+    st.session_state[_CLAVE_TOKEN] = token
+    return sesion
 
 
 def sesion_actual() -> Sesion | None:
@@ -158,7 +219,9 @@ def sesion_actual() -> Sesion | None:
 
     sesion = st.session_state.get(_CLAVE_SESION)
     if sesion is None:
-        return None
+        # No hay sesión en memoria (arranque nuevo del servidor o recarga): se
+        # intenta reabrir con la cookie persistente.
+        return _restaurar_desde_cookie()
 
     expira = st.session_state.get(_CLAVE_EXPIRA)
     if expira is not None and datetime.now() > expira:
@@ -207,14 +270,24 @@ def _asegurar_organizacion_desarrollo() -> int:
 
 
 def cerrar_sesion(motivo: str = "manual") -> None:
-    """Cierra la sesión y limpia los datos en memoria."""
+    """Cierra la sesión, revoca la cookie persistente y limpia la memoria."""
     sesion = st.session_state.get(_CLAVE_SESION)
     if sesion is not None:
         registrar_auditoria("cierre_sesion", getattr(sesion, "user_id", None), {"motivo": motivo})
 
+    # Revoca el token en la base para que la cookie deje de servir aunque siga
+    # en el navegador.
+    token = st.session_state.get(_CLAVE_TOKEN)
+    if token:
+        try:
+            SessionRepository.eliminar(_hash_token(token))
+        except Exception as error:  # noqa: BLE001
+            registrar_error(logger, error, "eliminación de la sesión persistente")
+    cookie.borrar_token()
+
     for clave in (
-        _CLAVE_SESION, _CLAVE_EXPIRA, "df_datos", "df_filtrado", "catalogo_costos",
-        "reporte_limpieza", "archivos_procesados", "filtros",
+        _CLAVE_SESION, _CLAVE_EXPIRA, _CLAVE_TOKEN, "df_datos", "df_filtrado",
+        "catalogo_costos", "reporte_limpieza", "archivos_procesados", "filtros",
     ):
         st.session_state.pop(clave, None)
 
@@ -300,18 +373,8 @@ def iniciar_sesion(email: str, password: str) -> ResultadoValidacion:
         resultado.agregar_error("La cuenta está desactivada. Contacta al administrador.")
         return resultado
 
-    organizacion = OrganizationRepository.obtener(usuario["organization_id"]) or {}
-
-    _guardar_sesion(Sesion(
-        user_id=usuario["id"],
-        email=usuario["email"],
-        nombre=usuario["nombre"],
-        rol=usuario["rol"],
-        organization_id=usuario["organization_id"],
-        plan=organizacion.get("plan", "gratuito"),
-        organizacion=organizacion.get("nombre", ""),
-        es_demo=usuario["es_demo"],
-    ))
+    _guardar_sesion(_sesion_desde_usuario(usuario))
+    _crear_cookie_persistente(usuario["id"])
 
     UserRepository.registrar_acceso(usuario["id"])
     registrar_auditoria("inicio_sesion", usuario["id"])

@@ -26,6 +26,7 @@ RAIZ = Path(__file__).resolve().parent
 if str(RAIZ) not in sys.path:
     sys.path.insert(0, str(RAIZ))
 
+from services import session_cookie  # noqa: E402
 from services.auth_service import (  # noqa: E402
     asegurar_usuario_demo,
     iniciar_sesion,
@@ -289,6 +290,10 @@ def construir_navegacion() -> None:
 def main() -> None:
     """Flujo principal de la aplicación."""
     estilos_globales()
+
+    # Las cookies se leen una sola vez por ejecución; esto invalida la caché del
+    # ciclo anterior para que la sesión persistente se resuelva con datos frescos.
+    session_cookie.nuevo_ciclo()
 
     if not inicializar():
         st.error(

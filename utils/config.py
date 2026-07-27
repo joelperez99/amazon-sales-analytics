@@ -80,6 +80,9 @@ class Settings(BaseModel):
     demo_password: str = "Demo1234!"
     session_secret: str = "clave-de-desarrollo-no-usar-en-produccion"
     session_timeout_minutes: int = 480
+    #: Días que dura la cookie de "recordarme": mantiene la sesión iniciada aunque
+    #: se reinicie el servidor (p. ej. al ajustar código durante el desarrollo).
+    session_cookie_days: int = 30
     password_min_length: int = 8
 
     # Almacenamiento
@@ -170,6 +173,7 @@ def get_settings() -> Settings:
         demo_password=_env("DEMO_PASSWORD", "Demo1234!"),
         session_secret=_env("SESSION_SECRET", "clave-de-desarrollo-no-usar-en-produccion"),
         session_timeout_minutes=_env_int("SESSION_TIMEOUT_MINUTES", 480),
+        session_cookie_days=_env_int("SESSION_COOKIE_DAYS", 30),
         password_min_length=_env_int("PASSWORD_MIN_LENGTH", 8),
         storage_backend=_env("STORAGE_BACKEND", "local").lower(),
         storage_local_path=_env("STORAGE_LOCAL_PATH", "./data/uploads"),

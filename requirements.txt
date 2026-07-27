@@ -5,6 +5,8 @@
 
 # --- Interfaz ---------------------------------------------------------------
 streamlit>=1.40,<2.0
+# Cookies de navegador (sesión persistente que sobrevive a reinicios/recargas).
+extra-streamlit-components>=0.1.70,<0.2
 
 # --- Procesamiento de datos -------------------------------------------------
 pandas>=2.1,<3.0
